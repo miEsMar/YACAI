@@ -2,7 +2,6 @@
 // Copyright (C) 2026  Michele Esposito Marzino
 //
 
-
 #ifndef YACAI_H_
 #define YACAI_H_
 
@@ -13,6 +12,19 @@ extern "C" {
 
 
 #define YArray_static_len(a) (sizeof a / sizeof *a)
+
+
+#if defined(__clang__)
+# pragma clang diagnostic push
+# if __has_warning("-Wunknown-warning-option")
+#  pragma clang diagnostic ignored "-Wunknown-warning-option"
+# endif
+# pragma clang diagnostic ignored "-Wint-to-void-pointer-cast"
+#elif defined(__GNUC__)
+# pragma GCC diagnostic push
+# pragma GCC diagnostic ignored "-Wpragmas"
+# pragma GCC diagnostic ignored "-Wint-to-pointer-cast"
+#endif
 
 
 #if defined(YACAI_IMPLEMENTATION)
@@ -122,7 +134,7 @@ static inline void ____YArray_grow_size(YArray a, const size_t size)
 }
 
 
-static inline void __YArray_set(YArray a, int value)
+static inline void __YArray_fill(YArray a, int value)
 {
     const struct __YHdr *hdr = ____YArray_hdr(a);
     if (hdr) {
@@ -202,7 +214,7 @@ static inline void __YArray_resize(YArray *a, const size_t new_capacity)
 }
 
 
-static inline void __YArray_push_back(YArray *arr, void **item)
+static inline void __YArray_push_back(YArray *arr, void *item)
 {
     YArray a = *arr;
 
@@ -216,7 +228,7 @@ static inline void __YArray_push_back(YArray *arr, void **item)
             hdr = ____YArray_hdr(a);
         }
         char *pos = ____YArray_at(a, curr_size, item_size);
-        memcpy(pos, item, item_size);
+        memcpy(pos, &item, item_size);
         ++hdr->size;
     }
     return;
@@ -260,27 +272,42 @@ static inline void __YArray_free(YArray a)
     return;
 }
 
+#endif // YACAI_IMPLEMENTATION
+
 
 /*------------------------------------------------------------*/
 /*--- YArray APIs                                          ---*/
 /*------------------------------------------------------------*/
 
-# define YArray()                            (YArray)0
-# define YArray_new(T, N)                    (T *)__YArray_new_aligned(sizeof(T), N, sizeof(T))
-# define YArray_new_aligned(T, N, alignment) (T *)__YArray_new_aligned(sizeof(T), N, alignment)
-# define YArray_at(arr, index)               __YArray_at((YArray)arr, index)
-# define YArray_set(arr, val)                __YArray_set((YArray)arr, val)
-# define YArray_size(arr)                    __YArray_size((YArray)arr)
-# define YArray_space(arr)                   __YArray_space((YArray)arr)
-# define YArray_capacity(arr)                __YArray_capacity((YArray)arr)
-# define YArray_resize(arr, N)               __YArray_resize((YArray *)&arr, N)
-# define YArray_push_back(arr, item)         __YArray_push_back((YArray *)&arr, (void **)item)
-# define YArray_merge(root, child)           __YArray_merge((YArray *)&root, (YArray)child)
-# define YArray_empty(a)                     __YArray_empty(a)
-# define YArray_free(arr)                    __YArray_free((YArray)arr)
+/// Constructor(s)
+#define YArray()                            (YArray)0
+#define YArray_new(T, N)                    (T *)__YArray_new_aligned(sizeof(T), N, sizeof(T))
+#define YArray_new_aligned(T, N, alignment) (T *)__YArray_new_aligned(sizeof(T), N, alignment)
+
+/// Query APIs
+#define YArray_at(arr, index) __YArray_at((YArray)arr, index)
+#define YArray_size(arr)      __YArray_size((YArray)arr)
+#define YArray_capacity(arr)  __YArray_capacity((YArray)arr)
+#define YArray_space(arr)     __YArray_space((YArray)arr)
+
+/// Set APIs
+#define YArray_fill(arr, val)       __YArray_fill((YArray)arr, val)
+#define YArray_push_back(arr, item) __YArray_push_back((YArray *)&arr, (void *)item)
+#define YArray_empty(a)             __YArray_empty(a)
+
+/// Handling APIs
+#define YArray_resize(arr, N)     __YArray_resize((YArray *)&arr, N)
+#define YArray_merge(root, child) __YArray_merge((YArray *)&root, (YArray)child)
+
+/// Destructor
+#define YArray_free(arr) __YArray_free((YArray)arr)
 
 
-#endif // YACAI_IMPLEMENTATION
+#if defined(__clang__)
+# pragma clang diagnostic pop
+#elif defined(__GNUC__)
+# pragma GCC diagnostic pop
+#endif
 
 
 #ifdef __cplusplus
